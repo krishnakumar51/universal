@@ -65,11 +65,17 @@ def agent_reasoning_node(state: AgentState, config: RunnableConfig) -> AgentStat
     
     relative_path = Path("screenshots") / job_id / f"{state['step']:02d}_step.png"
     state['screenshots'].append(relative_path.as_posix())
+    
+    # NEW: Push status for screenshot to allow dynamic loading in UI
+    if push_status_update:
+        push_status_update(job_id, "screenshot_taken", {"step": state['step'], "path": relative_path.as_posix()})
 
     state['page_content'] = page.content()
     state['url'] = page.url
     
     simplified_elements, modified_html = simplify_page_for_llm(state['page_content'])
+    if modified_html:
+        page.set_content(modified_html)  # FIX: Add this to apply agent-id to live page
     action_response = get_agent_action(state, simplified_elements)
     
     thought = action_response.get("thought", "No thought provided.")
@@ -81,7 +87,6 @@ def agent_reasoning_node(state: AgentState, config: RunnableConfig) -> AgentStat
     state['modified_html_for_action'] = modified_html
     
     return state
-
 def execute_action_node(state: AgentState, config: RunnableConfig) -> AgentState:
     page = get_page_from_config(config)
     action = state.get('last_action', {})
@@ -103,27 +108,29 @@ def execute_action_node(state: AgentState, config: RunnableConfig) -> AgentState
             if action_type in ["click", "press_enter"]:
                 selector = f"[agent-id='{action['id']}']"
                 element = page.locator(selector).first
+                element.wait_for(state='visible', timeout=30000)  # IMPROVE: Wait for visibility before action
                 
-                with page.expect_navigation(timeout=15000):
-                    if action_type == "click":
-                        element.click(timeout=10000)
-                    elif action_type == "press_enter":
-                        element.press('Enter', timeout=10000)
-                page.wait_for_load_state('domcontentloaded', timeout=15000)
+                # FIX: Remove expect_navigation; handle dynamically
+                if action_type == "click":
+                    element.click(timeout=30000)  # Increased timeout
+                elif action_type == "press_enter":
+                    element.press('Enter', timeout=30000)
+                page.wait_for_load_state('domcontentloaded', timeout=30000)  # Wait after action
 
             elif action_type == "fill":
                 selector = f"[agent-id='{action['id']}']"
                 element = page.locator(selector).first
-                element.fill(action["text"], timeout=10000)
+                element.wait_for(state='visible', timeout=30000)
+                element.fill(action["text"], timeout=30000)
                 
             elif action_type == "scroll":
                 direction = action.get("direction", "down")
                 scroll_amount = "window.innerHeight * 0.8" if direction == "down" else "-window.innerHeight * 0.8"
                 page.evaluate(f"window.scrollBy(0, {scroll_amount})")
-                page.wait_for_timeout(1000)
+                page.wait_for_timeout(2000)  # Increased for stability
             
             elif action_type == "wait":
-                page.wait_for_timeout(5000)
+                page.wait_for_timeout(10000)  # Increased to 10s for better loading
 
             elif action_type == "extract":
                 items = action.get("items", [])
@@ -131,11 +138,11 @@ def execute_action_node(state: AgentState, config: RunnableConfig) -> AgentState
                 if push_status_update:
                     push_status_update(job_id, "partial_result", {"items": items})
             
-            if action_type not in ["click", "press_enter"]:
-                 page.wait_for_timeout(3000)
+            page.wait_for_timeout(5000)  # General post-action wait, increased
             
         except PlaywrightTimeoutError as e:
-            error_message = f"Action '{action.get('type')}' failed. The page may not have changed as expected or the element was not found. Error: {str(e).splitlines()[0]}"
+            error_message = str(e).splitlines()[0]
+            # FIX: If timeout was on navigation expectation (removed), treat as success if no nav needed
             outcome = "FAILED"
         except Exception as e:
             error_message = str(e).splitlines()[0]
@@ -150,7 +157,7 @@ def execute_action_node(state: AgentState, config: RunnableConfig) -> AgentState
     state['execution_summary'].append(f"  -> Action: {json.dumps(action)}\n  -> Outcome: {outcome}" + (f" ({error_message})" if error_message else ""))
     
     if outcome == "Success":
-        state['step'] += 1
+        state['step'] += 1  # Advance even after retry success
     
     state['history'] = state['history'][-5:]
     
@@ -161,7 +168,7 @@ def researcher_node(state: AgentState, config: RunnableConfig) -> AgentState:
         state['research_summary'] = "Tavily API key not configured. Skipping research."
         return state
 
-    query = f"How to achieve this task: '{state['current_task']}' on the website {state['url']} using Playwright and CSS selectors?"
+    query = f"How to achieve this task: '{state['current_task']}' on the website {state['url']}?"  # FIX: Remove "using Playwright and CSS selectors" to avoid mismatch
     
     if push_status_update:
         push_status_update(state['job_id'], "research_started", {"query": query})
@@ -203,6 +210,13 @@ def validator_and_router_node(state: AgentState) -> str:
             return "__end__"
 
     state['retry_count'] = 0
+
+    # IMPROVE: Add target_count check like in example code
+    target_count = state['plan_details'].get('target_count', float('inf'))
+    if len(state['results']) >= target_count:
+        if push_status_update:
+            push_status_update(state['job_id'], "agent_finished", {"reason": f"Collected {len(state['results'])}/{target_count} items."})
+        return "__end__"
 
     if state.get('last_action', {}).get("type") == "finish":
         reason = state['last_action'].get("reason", "Task completed.")
@@ -257,4 +271,3 @@ if __name__ == "__main__":
         print("✅ Agent workflow diagram saved to `agent_workflow.md`")
     except Exception as e:
         print(f"Could not generate graph visualization: {e}")
-

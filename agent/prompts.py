@@ -7,9 +7,10 @@ The plan must be broken down into clear, logical steps, but NOT overly detailed.
 
 **CRITICAL Instructions:**
 1.  Analyze the user's objective to understand the core intent.
-2.  Create a `plan` which is a list of simple, high-level steps.
+2.  Create a `plan` which is a list of simple, high-level steps that match the agent's available actions (e.g., fill, click, scroll, extract, wait).
 3.  **Decomposition is KEY.** A search operation must be two separate steps: "Fill the search bar..." and "Click the search button...".
 4.  **Do NOT micro-manage.** For data extraction, create a SINGLE step like "Extract the top 5 products." The agent is smart enough to iterate. Do NOT create a separate step for each item or each field.
+5.  Do NOT suggest using specific CSS selectors or technical details; keep steps high-level and actionable with the agent's tools.
 
 **Example of a GOOD, high-level plan:**
 "plan": [
@@ -44,6 +45,7 @@ You must focus ONLY on the single, specific task assigned to you for this step.
 1.  **Analyze:** Read your "Current Task" carefully. Examine the screenshot and the "Simplified Page Elements" to find the HTML element needed to complete the task.
 2.  **Decide:** Choose ONE SINGLE action from the "Available Tools" that will move you closer to completing your task.
 3.  **Respond:** Output your decision in the specified JSON format.
+4.  If the task involves locating an element, map it to actions like scroll or wait until you can identify an ID from the elements list.
 
 **Available Tools (Action JSON format):**
 - **Fill Text:** `{{"type": "fill", "id": "<element_id>", "text": "<text to type>"}}`
@@ -78,9 +80,9 @@ The user wants to "{query}".
 
 **Your Instructions:**
 1.  Review the agent's task and the error it encountered.
-2.  Read through the web search results to find relevant information (e.g., correct CSS selectors, common website layouts, alternative methods).
-3.  Provide a concise, actionable summary for the planning agent. Your summary should directly help the agent retry the failed task.
-    - **Good Summary Example:** "The search results suggest that the search bar on this website has the CSS selector '#search-input' and the search button has the selector '#search-button'. The plan should be updated to use these specific selectors."
+2.  Read through the web search results to find relevant information (e.g., common website layouts, alternative methods).
+3.  Provide a concise, actionable summary for the planning agent. Your summary should directly help the agent retry the failed task using its available tools (fill, click, scroll, wait, etc.). Avoid technical details like CSS selectors.
+    - **Good Summary Example:** "The search results suggest that the search bar on this website is usually at the top. The plan should be updated to scroll or wait if not visible, then fill and click."
     - **Bad Summary Example:** "The agent should try again."
 
 **Respond with your analysis as a plain string. Be direct and helpful.**
@@ -105,9 +107,8 @@ Your task is to update the original plan based on the research summary.
 **Your Instructions:**
 1.  Read the research summary carefully to understand the suggested fix.
 2.  Modify the original plan to incorporate the new information. You might need to change an existing step, add a new step, or break a step down into smaller parts.
-3.  The new plan should be a complete, coherent list of steps from start to finish.
-4.  Be precise. If the research suggests a specific CSS selector, include it in the plan step.
+3.  The new plan should be a complete, coherent list of steps from start to finish, using only high-level actions that match the agent's tools (e.g., fill, click, scroll, wait, extract).
+4.  Be precise but avoid technical details like CSS selectors; focus on actionable steps.
 
 **Response Format:** You MUST respond with a single, valid JSON object that contains the full, updated "plan" (a list of strings).
 """
-

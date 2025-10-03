@@ -5,269 +5,196 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Universal Web Agent</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: #f4f7f6; display: flex; justify-content: center; padding: 2rem; }
-        .container { width: 95%; max-width: 1400px; background: white; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); overflow: hidden; }
-        header { background: linear-gradient(135deg, #2c3e50, #34495e); color: white; padding: 1.5rem 2rem; text-align: center; }
-        header h1 { margin: 0; font-size: 1.8rem; letter-spacing: 1px; }
-        main { display: flex; flex-direction: column; }
-        .controls { width: 100%; padding: 2rem; border-bottom: 1px solid #e0e0e0; box-sizing: border-box; }
-        .controls .input-group { margin-bottom: 1.5rem; }
-        .controls label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #34495e; font-size: 1rem; }
-        .controls input, .controls select, .controls textarea { width: 100%; padding: 0.8rem; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; box-sizing: border-box; transition: box-shadow 0.2s; }
-        .controls textarea { resize: vertical; min-height: 80px; }
-        .controls input:focus, .controls select:focus, .controls textarea:focus { box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3); outline: none; border-color: #3498db; }
-        .controls button { width: 100%; padding: 1rem; background: #3498db; color: white; border: none; border-radius: 5px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s, transform 0.1s; }
-        .controls button:hover:not(:disabled) { background-color: #2980b9; }
-        .controls button:active { transform: scale(0.99); }
-        .controls button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
-        .results-area { width: 100%; }
-        .tabs { display: flex; border-bottom: 1px solid #e0e0e0; background-color: #f8f9fa; }
-        .tab-button { padding: 1rem 1.5rem; cursor: pointer; background: none; border: none; font-size: 1rem; color: #555; position: relative; }
-        .tab-button.active { font-weight: 600; color: #2c3e50; }
-        .tab-button.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background-color: #3498db; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .content-wrapper { padding: 2rem; }
-        #log, #json-result, #exec-graph { white-space: pre-wrap; word-wrap: break-word; font-family: "SF Mono", "Courier New", monospace; background: #282c34; color: #abb2bf; padding: 1.5rem; border-radius: 5px; height: 500px; overflow-y: auto; }
-        #screenshots-container { display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 1rem; justify-content: center; }
-        #screenshots-container img { max-width: 100%; border: 1px solid #ccc; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .screenshot-wrapper { text-align: center; }
-        .screenshot-wrapper p { margin-top: 0.5rem; font-size: 0.9rem; color: #555; }
-        .thought-bubble { background-color: #ecf0f1; border-left: 4px solid #3498db; padding: 0.75rem 1.25rem; margin: 0.75rem 0; border-radius: 4px; font-style: italic; color: #34495e; white-space: pre-wrap; word-wrap: break-word; }
-        .query-info { background-color: #d5f4e6; padding: 1rem; border-radius: 5px; margin-bottom: 1rem; font-size: 0.95rem; }
-        .error-msg { color: #e74c3c; background-color: #fdf2f2; padding: 1rem; border-radius: 5px; margin: 1rem 0; border-left: 4px solid #e74c3c; }
-        .success-msg { color: #27ae60; background-color: #d5f4e6; padding: 1rem; border-radius: 5px; margin: 1rem 0; border-left: 4px solid #27ae60; }
-        @media (min-width: 1024px) {
-            main { flex-direction: row; }
-            .controls { width: 35%; border-right: 1px solid #e0e0e0; border-bottom: none;}
-            .results-area { width: 65%; }
-            .screenshot-wrapper { max-width: 48%; }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .form-group { margin-bottom: 10px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, textarea, select { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .tab-buttons { margin: 20px 0; }
+        .tab-buttons button { margin-right: 10px; padding: 10px; }
+        .tab { display: none; }
+        .tab.active { display: block; }
+        #log-content, #result-content, #summary-content { 
+            background: #f8f9fa; padding: 10px; border: 1px solid #dee2e6; white-space: pre-wrap; max-height: 400px; overflow-y: auto; 
         }
+        #screenshots-container { display: flex; flex-wrap: wrap; }
+        #screenshots img { max-width: 300px; margin: 5px; border: 1px solid #ddd; }
+        .stealth-toggle { margin: 10px 0; }
+        .stealth-toggle input[type="checkbox"] { width: auto; margin-right: 10px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header><h1>Universal Web Agent</h1></header>
-        <main>
-            <div class="controls">
-                <div class="input-group">
-                    <label for="url">Target URL</label>
-                    <input id="url" type="text" value="https://www.amazon.in/" placeholder="e.g., https://www.amazon.in/">
-                </div>
-                <div class="input-group">
-                    <label for="query">Your Objective</label>
-                    <textarea id="query" placeholder="Describe your task, e.g., 'Find the top 5 latest Samsung smartphones under 50000 with user ratings above 4 stars'">Find the top 5 latest samsung smartphones under 50000 with user ratings above 4 stars</textarea>
-                </div>
-                <div class="input-group">
-                    <label for="provider">LLM Provider (Vision model recommended)</label>
-                    <select id="provider">
-                        <option value="anthropic" selected>Anthropic (Claude 3.5 Sonnet)</option>
-                        <option value="openai">OpenAI (GPT-4o)</option>
-                        <option value="groq" disabled>Groq (Llama3 - No Vision)</option>
-                    </select>
-                </div>
-                <button id="start-btn">Start Agent</button>
-                <div id="status-msg"></div>
-            </div>
-            <div class="results-area">
-                <div class="tabs">
-                    <button class="tab-button active" onclick="openTab(event, 'log-tab')">Live Log</button>
-                    <button class="tab-button" onclick="openTab(event, 'screenshots-tab')">Screenshots</button>
-                    <button class="tab-button" onclick="openTab(event, 'result-tab')">Final JSON Result</button>
-                    <button class="tab-button" onclick="openTab(event, 'graph-tab')">Execution Summary</button>
-                </div>
-                <div id="log-tab" class="tab-content active">
-                    <div class="content-wrapper">
-                       <div id="log" style="height: 600px;">Awaiting job start...</div>
-                    </div>
-                </div>
-                <div id="screenshots-tab" class="tab-content">
-                     <div class="content-wrapper" style="height: 600px; overflow-y: auto;">
-                        <div id="screenshots-container"></div>
-                    </div>
-                </div>
-                <div id="result-tab" class="tab-content">
-                    <div class="content-wrapper">
-                        <pre id="json-result" style="height: 600px;">{}</pre>
-                    </div>
-                </div>
+    <h1>Universal Web Agent</h1>
+    
+    <div class="form-group">
+        <label for="url">Target URL</label>
+        <input id="url" type="url" value="https://www.amazon.in/" placeholder="https://example.com" />
+    </div>
+    
+    <div class="form-group">
+        <label for="query">Your Objective</label>
+        <textarea id="query" rows="3">Find the top 5 latest samsung smartphones under 50000 with user ratings above 4 stars</textarea>
+    </div>
+    
+    <div class="form-group">
+        <label for="provider">LLM Provider (Vision model recommended)</label>
+        <select id="provider">
+            <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
+            <option value="openai">OpenAI (GPT-4o)</option>
+            <option value="groq">Groq (Llama3 - No Vision)</option>
+        </select>
+    </div>
+    
+    <div class="stealth-toggle">
+        <label>
+            <input type="checkbox" id="stealth" /> Enable Stealth Mode (Undetected Playwright) - Use for anti-bot sites
+        </label>
+    </div>
+    
+    <button onclick="startJob()">Start Agent</button>
 
-                <div id="graph-tab" class="tab-content">
-                    <div class="content-wrapper">
-                        <pre id="exec-graph" style="height: 600px;"></pre>
-                    </div>
-                </div>
-            </div>
-        </main>
+    <div class="tab-buttons">
+        <button onclick="showTab('log')">Live Log</button>
+        <button onclick="showTab('screenshots')">Screenshots</button>
+        <button onclick="showTab('result')">Final JSON Result</button>
+        <button onclick="showTab('summary')">Execution Summary</button>
+    </div>
+
+    <div id="log" class="tab active">
+        <pre id="log-content">Awaiting job start...</pre>
+    </div>
+
+    <div id="screenshots" class="tab">
+        <div id="screenshots-container">
+            <!-- Screenshots will load dynamically here -->
+        </div>
+    </div>
+
+    <div id="result" class="tab">
+        <pre id="result-content">{}</pre>
+    </div>
+
+    <div id="summary" class="tab">
+        <pre id="summary-content"></pre>
     </div>
 
     <script>
-        const startBtn = document.getElementById('start-btn');
-        const logEl = document.getElementById('log');
-        const jsonResultEl = document.getElementById('json-result');
-        const screenshotsContainer = document.getElementById('screenshots-container');
-        const execGraphEl = document.getElementById('exec-graph');
-        const statusMsgEl = document.getElementById('status-msg');
-        
-        let currentJobId = null;
-        let es = null;
+        let eventSource;
+        let jobId;
 
-        function openTab(evt, tabName) {
-            Array.from(document.getElementsByClassName("tab-content")).forEach(el => el.style.display = 'none');
-            Array.from(document.getElementsByClassName("tab-button")).forEach(el => el.classList.remove('active'));
-            document.getElementById(tabName).style.display = 'block';
-            evt.currentTarget.classList.add('active');
-        }
+        function startJob() {
+            const url = document.getElementById('url').value;
+            const query = document.getElementById('query').value;
+            const provider = document.getElementById('provider').value;
+            const stealth = document.getElementById('stealth').checked;
 
-        // Initialize first tab
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelector('.tab-button').click();
-        });
-
-
-        function showStatus(type, message) {
-            statusMsgEl.innerHTML = `<div class="${type}-msg">${message}</div>`;
-        }
-
-        function appendToLog(htmlContent) {
-            logEl.innerHTML += htmlContent;
-            logEl.scrollTop = logEl.scrollHeight;
-        }
-        
-        function updateScreenshots(jobId, step) {
-            const screenshotWrapper = document.createElement('div');
-            screenshotWrapper.className = 'screenshot-wrapper';
-            
-            const stepLabel = document.createElement('p');
-            stepLabel.textContent = `Step ${step}`;
-            
-            const img = document.createElement('img');
-            // Use a timestamp to break cache on reload
-            img.src = `/screenshots/${jobId}/${String(step).padStart(2, '0')}_step.png?t=${new Date().getTime()}`;
-            img.alt = `Screenshot at step ${step}`;
-            img.loading = 'lazy';
-            img.onerror = () => { img.style.display = 'none'; console.error('Screenshot load failed:', img.src); };
-            
-            screenshotWrapper.appendChild(stepLabel);
-            screenshotWrapper.appendChild(img);
-            screenshotsContainer.appendChild(screenshotWrapper);
-            screenshotsContainer.scrollTop = screenshotsContainer.scrollHeight;
-        }
-
-
-        function connectStream(streamUrl, jobId) {
-            if (es) {
-                es.close();
-            }
-            es = new EventSource(streamUrl);
-
-            es.onmessage = (event) => {
-                if (event.data.startsWith(':')) return; // Ignore keep-alive
-                try {
-                    const msg = JSON.parse(event.data);
-                    
-                    const timestamp = `<span style="color: #a29bfe;">[${new Date(msg.ts).toLocaleTimeString()}]</span>`;
-                    const eventType = `<span style="color: #00b894;">${msg.msg}</span>`;
-                    
-                    if (msg.msg === 'agent_thought') {
-                        const thoughtDiv = document.createElement('div');
-                        thoughtDiv.className = 'thought-bubble';
-                        thoughtDiv.innerHTML = `🤖 <strong>Agent Thought:</strong> ${msg.details.thought || 'No details provided.'}`;
-                        logEl.appendChild(thoughtDiv);
-                    } else {
-                         const detailsHtml = msg.details ? `<pre style="color: #74b9ff; margin: 0; background: #1e1e1e; padding: 0.5rem; border-radius: 3px; font-size: 0.8rem;">${JSON.stringify(msg.details, null, 2)}</pre>` : '';
-                        appendToLog(`<br>${timestamp} ${eventType}<br>${detailsHtml}`);
-                    }
-
-                    if (msg.msg === 'agent_step') {
-                        updateScreenshots(jobId, msg.details.step);
-                    }
-                    
-                    if (msg.msg === 'job_done' || msg.msg === 'job_failed') {
-                        es.close();
-                        startBtn.disabled = false;
-                        startBtn.textContent = 'Start Agent';
-                        showStatus(msg.msg === 'job_done' ? 'success' : 'error', msg.msg.replace('_', ' ').toUpperCase());
-                        fetchAndDisplayFinalResults(currentJobId);
-                    }
-                } catch (parseErr) {
-                    appendToLog(`<br><span style="color: #e74c3c;">Parse error: ${parseErr.message}</span><br>`);
-                }
-            };
-
-            es.onerror = (err) => {
-                console.error('EventSource error:', err);
-                appendToLog(`<br><div class="error-msg">Stream connection lost. State: ${es.readyState}. Will not reconnect. Please start a new job.</div>`);
-                es.close();
-                startBtn.disabled = false;
-                startBtn.textContent = 'Start Agent';
-            };
-        }
-
-        startBtn.onclick = async () => {
-            startBtn.disabled = true;
-            startBtn.textContent = 'Running...';
-            statusMsgEl.innerHTML = '';
-            logEl.innerHTML = 'Initializing job...\n';
-            jsonResultEl.textContent = '{}';
-            screenshotsContainer.innerHTML = '';
-            execGraphEl.textContent = '';
-            
-            const body = {
-                url: document.getElementById('url').value.trim(),
-                query: document.getElementById('query').value.trim(),
-                llm_provider: document.getElementById('provider').value,
-            };
-
-            if (!body.url || !body.query) {
-                appendToLog('<div class="error-msg">Please provide both URL and objective.</div>');
-                startBtn.disabled = false;
-                startBtn.textContent = 'Start Agent';
+            if (!url || !query) {
+                alert('Please fill URL and Objective');
                 return;
             }
 
-            appendToLog(`<div class="query-info"><strong>Objective:</strong> ${body.query}<br><strong>Target:</strong> ${body.url}</div>`);
+            fetch('/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url, query, llm_provider: provider, stealth })
+            })
+            .then(res => res.json())
+            .then(data => {
+                jobId = data.job_id;
+                appendToLog({ msg: 'Job started with ID: ' + jobId + ' (Stealth: ' + (stealth ? 'Enabled' : 'Disabled') + ')' });
+                connectStream(data.stream_url);
+            })
+            .catch(err => {
+                appendToLog({ msg: 'Error starting job: ' + err.message });
+            });
+        }
 
-            try {
-                const res = await fetch('/search', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(body)
-                });
-                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-                const data = await res.json();
-                currentJobId = data.job_id;
-                appendToLog(`<br><span style="color: #00b894;">Job started with ID: ${data.job_id}</span><br>Connecting to stream...<br>`);
-                connectStream(data.stream_url, data.job_id);
+        function connectStream(streamUrl) {
+            eventSource = new EventSource(streamUrl);
+            eventSource.onmessage = function(event) {
+                if (event.data === ': keep-alive') return;
+                try {
+                    const data = JSON.parse(event.data);
+                    appendToLog(data);
+                    handleEvent(data);
+                } catch (e) {
+                    console.error('Parse error:', e);
+                }
+            };
 
-            } catch (error) {
-                appendToLog(`<br><div class="error-msg">Failed to start job: ${error.message}</div>`);
-                showStatus('error', `Failed to start: ${error.message}`);
-                startBtn.disabled = false;
-                startBtn.textContent = 'Start Agent';
+            eventSource.onerror = function(e) {
+                appendToLog({ msg: 'Stream error: ' + e });
+                eventSource.close();
+            };
+        }
+
+        function handleEvent(data) {
+            const details = data.details || {};
+            switch (data.msg) {
+                case 'screenshot_taken':
+                    addScreenshot(details.path);
+                    break;
+                case 'partial_result':
+                    updateResult(JSON.stringify(details.items, null, 2));
+                    break;
+                case 'agent_thought':
+                    appendToLog({ msg: '🤖 Agent Thought: ' + details.thought });
+                    break;
+                case 'job_done':
+                case 'job_failed':
+                    fetchResult();
+                    if (eventSource) eventSource.close();
+                    if (data.msg === 'job_failed') {
+                        alert('Job failed! Check log for details.');
+                    }
+                    break;
             }
-        };
-        
-        async function fetchAndDisplayFinalResults(jobId) {
-             if (!jobId) return;
-            try {
-                const res = await fetch(`/result/${jobId}`);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
-                
-                jsonResultEl.textContent = JSON.stringify(data, null, 2);
-                
-                if (data.execution_summary) {
-                    execGraphEl.textContent = data.execution_summary.join('\n');
-                }
-                if (data.error) {
-                    appendToLog(`<div class="error-msg">Final error: ${data.error}</div>`);
-                }
-            } catch (error) {
-                appendToLog(`<br><div class="error-msg">Failed to load final results: ${error.message}</div>`);
+        }
+
+        function appendToLog(data) {
+            const logContent = document.getElementById('log-content');
+            const timestamp = new Date().toLocaleTimeString();
+            logContent.innerText += `\n[${timestamp}] ${data.msg}`;
+            if (data.details) {
+                logContent.innerText += '\n' + JSON.stringify(data.details, null, 2);
             }
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+
+        function addScreenshot(path) {
+            const container = document.getElementById('screenshots-container');
+            const img = document.createElement('img');
+            img.src = '/' + path;
+            img.alt = `Step screenshot: ${path}`;
+            img.onerror = () => { img.alt = 'Failed to load'; };
+            container.appendChild(img);
+        }
+
+        function updateResult(content) {
+            document.getElementById('result-content').innerText = content;
+        }
+
+        function fetchResult() {
+            if (!jobId) return;
+            fetch(`/result/${jobId}`)
+                .then(res => res.json())
+                .then(data => {
+                    updateResult(JSON.stringify(data.results || [], null, 2));
+                    document.getElementById('summary-content').innerText = (data.execution_summary || []).join('\n');
+                    if (data.error) {
+                        appendToLog({ msg: 'Final error: ' + data.error });
+                    }
+                    // Load any final screenshots
+                    (data.screenshots || []).forEach(path => addScreenshot(path));
+                })
+                .catch(err => appendToLog({ msg: 'Error fetching result: ' + err }));
+        }
+
+        function showTab(tabId) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
         }
     </script>
 </body>
 </html>
-

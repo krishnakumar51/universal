@@ -17,6 +17,10 @@ from agent.graph import create_graph, set_push_status_update
 from config.settings import SCREENSHOTS_DIR, RESULTS_DIR, STATIC_DIR, VIEWPORT_SIZE
 from browser.utils import get_current_timestamp
 
+# IMPROVE: Add basic logging
+import logging
+logging.basicConfig(level=logging.INFO)
+
 # --- CRITICAL FIX: Restore the robust import for undetected-playwright ---
 try:
     from undetected_playwright.sync import Tarnished
@@ -24,7 +28,7 @@ except ImportError:
     try:
         from undetected_playwright import Tarnished
     except ImportError:
-        print("Warning: undetected_playwright not found. Stealth features will be disabled.")
+        logging.warning("undetected_playwright not found. Stealth features disabled.")
         Tarnished = None
 
 LLMProvider = str
@@ -43,7 +47,7 @@ def push_status(job_id: str, msg: str, details: dict = None):
         entry = {"ts": get_current_timestamp(), "msg": msg}
         if details: entry["details"] = details
         try: q.put_nowait(entry)
-        except asyncio.QueueFull: print(f"Warning: Queue for job {job_id} is full.")
+        except asyncio.QueueFull: logging.warning(f"Queue full for job {job_id}.")
 
 set_push_status_update(push_status)
 
@@ -51,6 +55,7 @@ class SearchRequest(BaseModel):
     url: str
     query: str
     llm_provider: LLMProvider = "anthropic"
+    stealth: bool = False  # NEW: Default to False (normal Playwright)
 
 agent_graph = create_graph()
 
@@ -58,6 +63,7 @@ def run_job(job_id: str, payload: dict):
     push_status(job_id, "job_initiated")
     browser: Browser = None
     final_state_dict = {}
+    stealth_enabled = payload.get("stealth", False)
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
@@ -66,8 +72,14 @@ def run_job(job_id: str, payload: dict):
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
             )
             
-            if Tarnished:
-                Tarnished.apply_stealth(context)
+            # UPDATED: Apply stealth only if requested and available
+            if stealth_enabled:
+                if Tarnished:
+                    Tarnished.apply_stealth(context)
+                    logging.info(f"Stealth mode enabled for job {job_id}")
+                else:
+                    logging.warning(f"Stealth requested but undetected_playwright not available for job {job_id}. Using normal mode.")
+                    stealth_enabled = False  # Fallback to normal
             
             page = context.new_page()
             page.goto(payload["url"], wait_until='domcontentloaded', timeout=90000)
@@ -75,7 +87,7 @@ def run_job(job_id: str, payload: dict):
             page.wait_for_selector("body", timeout=15000)
             page.wait_for_timeout(5000)
             
-            push_status(job_id, "job_started", {"provider": payload["llm_provider"], "query": payload["query"]})
+            push_status(job_id, "job_started", {"provider": payload["llm_provider"], "query": payload["query"], "stealth": stealth_enabled})
             
             job_artifacts_dir = SCREENSHOTS_DIR / job_id
             job_artifacts_dir.mkdir(exist_ok=True)
@@ -95,6 +107,7 @@ def run_job(job_id: str, payload: dict):
     except (Exception, GraphRecursionError) as e:
         error_message = f"An unexpected error occurred: {str(e)}"
         tb_str = traceback.format_exc()
+        logging.error(tb_str)
         push_status(job_id, "job_failed", {"error": error_message, "trace": tb_str})
         final_state_dict["error"] = error_message
     finally:
@@ -152,4 +165,3 @@ async def client_ui():
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
-

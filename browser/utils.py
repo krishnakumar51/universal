@@ -18,8 +18,9 @@ def resize_image_if_needed(image_path: Path):
 def simplify_page_for_llm(page_content: str) -> tuple[str, str]:
     soup = BeautifulSoup(page_content, "html.parser")
     
-    for tag in soup.find_all(['script', 'style', 'svg', 'nav', 'footer', 'header']):
-        tag.decompose()
+    # FIX: Remove destructive decompose; only remove non-essential if needed (e.g., scripts/styles break JS, so skip)
+    # for tag in soup.find_all(['script', 'style', 'svg']):  # Optional: Uncomment if you want to remove these, but test
+    #     tag.decompose()
 
     interactive_elements = soup.find_all(['a', 'button', 'input', 'textarea', 'select'])
     simplified_elements = []
@@ -35,4 +36,3 @@ def simplify_page_for_llm(page_content: str) -> tuple[str, str]:
         simplified_elements.append(f"[{agent_id}] <{element.name}> {text[:100]}")
 
     return "\n".join(simplified_elements), str(soup)
-
