@@ -1,0 +1,10 @@
+{
+  "job_id": "283cc204-7d2f-4ac1-af28-692ea6d9a9f6",
+  "results": [],
+  "generated_credentials": {},
+  "screenshots": [],
+  "execution_summary": [
+    "Job did not complete."
+  ],
+  "error": "An unexpected error occurred: cannot convert float infinity to integer"
+}

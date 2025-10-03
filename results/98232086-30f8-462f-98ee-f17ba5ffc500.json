@@ -1,0 +1,10 @@
+{
+  "job_id": "98232086-30f8-462f-98ee-f17ba5ffc500",
+  "results": [],
+  "generated_credentials": {},
+  "screenshots": [],
+  "execution_summary": [
+    "Job did not complete."
+  ],
+  "error": "An unexpected error occurred: Page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://www.myntra.com/\nCall log:\n  - navigating to \"https://www.myntra.com/\", waiting until \"domcontentloaded\"\n"
+}

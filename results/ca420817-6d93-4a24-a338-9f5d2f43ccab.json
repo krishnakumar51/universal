@@ -1,0 +1,10 @@
+{
+  "job_id": "ca420817-6d93-4a24-a338-9f5d2f43ccab",
+  "results": [],
+  "generated_credentials": {},
+  "screenshots": [],
+  "execution_summary": [
+    "Job did not complete."
+  ],
+  "error": "An unexpected error occurred: [Errno 2] No such file or directory: 'C:\\\\Users\\\\krishna\\\\Desktop\\\\Geminin-mvp\\\\screenshots\\\\ca420817-6d93-4a24-a338-9f5d2f43ccab\\\\01_step.png'"
+}

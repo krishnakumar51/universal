@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+playwright
+langgraph
+anthropic
+openai
+groq
+beautifulsoup4
+Pillow
+tavily-python

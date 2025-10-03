@@ -1,0 +1,9 @@
+{
+  "job_id": "90e76e7b-af7e-4885-b34f-90e22062f763",
+  "results": [],
+  "screenshots": [],
+  "execution_summary": [
+    "Job did not complete."
+  ],
+  "error": "An unexpected error occurred: Failed to decode JSON: Expecting ',' delimiter: line 9 column 4 (char 224)\nOriginal string was: {\n  \"objective_analysis\": {\n    \"product_category\": \"smartphones\",\n    \"brand\": \"samsung\",\n    \"price_constraint\": \"under 50000\",\n    \"rating_constraint\": \"above 4 stars\",\n    \"quantity\": \"top 5\",\n    \"recency\": \"latest\"\n  }"
+}

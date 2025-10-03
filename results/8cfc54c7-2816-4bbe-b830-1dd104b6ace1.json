@@ -1,0 +1,10 @@
+{
+  "job_id": "8cfc54c7-2816-4bbe-b830-1dd104b6ace1",
+  "results": [],
+  "generated_credentials": {},
+  "screenshots": [],
+  "execution_summary": [
+    "Job did not complete."
+  ],
+  "error": "An unexpected error occurred: Page.screenshot: Target page, context or browser has been closed"
+}
